@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no"
+    />
+    <title>Upload GIF</title>
+    <link rel="stylesheet" href="upload.css" />
+    <link rel="stylesheet" href="color.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="terminal-title">GIF Upload Terminal</div>
+        </div>
+
+        <div class="content">
+          <div class="header">
+            <h1>📡 GIF Upload Station</h1>
+            <p>► Upload animated GIF files to OLED display ◄</p>
+          </div>
+
+          <form
+            method="POST"
+            action="/upload"
+            enctype="multipart/form-data"
+            class="upload-form"
+          >
+            <div class="form-group">
+              <label for="fileInput">Select GIF File:</label>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="fileInput"
+                  name="file"
+                  accept="image/gif"
+                  required
+                />
+                <div class="file-input-button" id="fileButton">
+                  📁 Choose GIF File<br />
+                  <small style="opacity: 0.7; text-transform: none"
+                    >Drag & drop or click to browse</small
+                  >
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+              🚀 Upload to OLED
+            </button>
+
+            <div id="message"></div>
+          </form>
+
+          <div class="info-panel">
+            <div class="info-title">📋 File Requirements</div>
+            <div class="info-content">
+              • Recommended size: <code>128×64 pixels</code><br />
+              • File format: <code>GIF (animated)</code><br />
+              • Storage location: <code>/anim.gif</code><br />
+              • Max file size: <code>2MB</code>
+            </div>
+          </div>
+
+          <div class="nav-panel">
+            <a href="/" class="nav-link">← Back to Canvas</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="upload.js"></script>
+  </body>
+</html>
