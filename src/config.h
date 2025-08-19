@@ -3,7 +3,8 @@
 
 #define BUTTON_PIN 3
 #define I2C_SDA 8
-#define I2C_SCL 9
+#define I2C_SCL 9 
+
 
 #define I2C_FREQ 400000
 #define DISPLAY_WIDTH 128
