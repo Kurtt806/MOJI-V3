@@ -7,18 +7,13 @@
       content="width=device-width, initial-scale=1, user-scalable=no"
     />
     <title>VI3D Tivi V3</title>
-    <link rel="stylesheet" href="index.css" />
-    <link rel="stylesheet" href="color.css" />
+    <link rel="stylesheet" href="indexx.css" />
   </head>
   <body>
     <div class="container">
       <div class="terminal-window">
         <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
+
           <div class="terminal-title">MOJI V3</div>
         </div>
 
@@ -30,11 +25,6 @@
 
       <div class="terminal-window">
         <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
           <div class="terminal-title">Giao diện Canvas</div>
         </div>
 
@@ -77,27 +67,28 @@
 
       <div class="terminal-window">
         <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
           <div class="terminal-title">Trạng thái hệ thống</div>
         </div>
 
         <div class="status-panel">
           <div class="status-title">Trạng thái kết nối</div>
           <div class="status-value" id="st">Đang kết nối...</div>
+
+          <!-- Thêm phần hiển thị thông tin bộ nhớ / SPIFFS -->
+          <div class="memory-info" style="margin-top:10px;font-size:14px;">
+            <div><strong>Bộ nhớ:</strong></div>
+            <div>Free Heap: <span id="freeHeap">-</span></div>
+            <div>Heap Size: <span id="heapSize">-</span></div>
+            <div>Max Alloc: <span id="maxAlloc">-</span></div>
+            <div style="margin-top:6px;"><strong>Filesystem (SPIFFS):</strong></div>
+            <div>Total: <span id="fsTotal">-</span></div>
+            <div>Used: <span id="fsUsed">-</span></div>
+          </div>
         </div>
       </div>
 
       <div class="terminal-window">
         <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
           <div class="terminal-title">Chức năng khác</div>
         </div>
 

@@ -270,6 +270,37 @@ document.getElementById("load").onclick = () => {
     });
 };
 
+// --- ADDED: fetch system info and update UI ---
+async function updateSystemInfo() {
+  try {
+    const res = await fetch("/system-info", { cache: "no-store" });
+    if (!res.ok) return;
+    const j = await res.json();
+    const fmt = (n) =>
+      typeof n === "number"
+        ? n >= 1024
+          ? (n / 1024).toFixed(1) + " KB"
+          : n + " B"
+        : "-";
+
+    const freeHeapEl = document.getElementById("freeHeap");
+    const heapSizeEl = document.getElementById("heapSize");
+    const maxAllocEl = document.getElementById("maxAlloc");
+    const fsTotalEl = document.getElementById("fsTotal");
+    const fsUsedEl = document.getElementById("fsUsed");
+
+    if (freeHeapEl) freeHeapEl.textContent = fmt(j.freeHeap);
+    if (heapSizeEl) heapSizeEl.textContent = fmt(j.heapSize);
+    if (maxAllocEl)
+      maxAllocEl.textContent = fmt(j.maxAllocHeap ?? j.maxAlloc ?? "-");
+    if (fsTotalEl) fsTotalEl.textContent = fmt(j.fsTotal);
+    if (fsUsedEl) fsUsedEl.textContent = fmt(j.fsUsed);
+  } catch (e) {}
+}
+
+updateSystemInfo();
+setInterval(updateSystemInfo, 5000);
+
 // Prevent scrolling when touching the canvas
 document.body.addEventListener(
   "touchstart",

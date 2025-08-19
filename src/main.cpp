@@ -207,16 +207,13 @@ void drawClock()
   u8g2.sendBuffer();
 }
 
-// Vẽ mắt
+// Vẽ mắt với điều khiển chuyển động
+
 void drawEyes()
 {
+  eyes.animShake(200);
+
   eyes.update();
-  // test animation
-  if (millis() % 10000 < 50)
-    eyes.animConfused();
-  if (millis() % 15000 < 50)
-    eyes.animLaugh();
-  
 }
 
 // Vẽ màn hình QR
@@ -697,7 +694,7 @@ void BMI160Task(void *pv)
 {
   BMI160.setGyroRange(BMI160_GYRO_RANGE_250);
   BMI160.setAccelerometerRange(BMI160_ACCEL_RANGE_2G);
-  float alpha = 0.98; // hệ số lọc
+  float alpha = 0.98;
   int ax, ay, az, gx, gy, gz;
   lastUpdate = millis();
   for (;;)
@@ -721,7 +718,7 @@ void BMI160Task(void *pv)
     // Complementary Filter
     angleX = alpha * (angleX + gX * dt) + (1 - alpha) * accAngleX;
     angleY = alpha * (angleY + gY * dt) + (1 - alpha) * accAngleY;
-    angleZ += gZ * dt;
+    // angleZ += gZ * dt;
     vTaskDelay(pdMS_TO_TICKS(10)); // ~100Hz
   }
 }
@@ -742,8 +739,9 @@ void DisplayTask(void *pv)
 {
   u8g2.begin();
   eyes.begin(128, 64, 50);
-  eyes.setAutoblink(true, 2000); // blink mỗi ~2s
+  eyes.setAutoblink(true, 3000); // blink mỗi ~3s
   eyes.setIdle(true);            // mắt tự đảo
+
   for (;;)
   {
     // Vẽ màn hình tương ứng với trạng thái hiện tại

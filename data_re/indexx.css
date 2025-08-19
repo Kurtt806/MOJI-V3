@@ -1,0 +1,242 @@
+/* style.css - MOJI V3 UI */
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  line-height: 1.5;
+}
+
+a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 10px;
+}
+
+/* --- Terminal Window --- */
+.terminal-window {
+  background: #161b22;
+  border-radius: 10px;
+  margin: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  background: #21262d;
+  padding: 6px 12px;
+  border-bottom: 1px solid #30363d;
+}
+
+.terminal-title {
+  font-weight: bold;
+  color: #8b949e;
+  font-size: 14px;
+}
+
+/* --- Header / Title --- */
+.header {
+  text-align: center;
+  padding: 20px;
+}
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #58a6ff;
+}
+.header p {
+  color: #9da7b1;
+  font-size: 15px;
+}
+
+/* --- Canvas Section --- */
+.canvas-section {
+  padding: 20px;
+}
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+.canvas-frame {
+  background: #0d1117;
+  border: 2px solid #30363d;
+  padding: 10px;
+  border-radius: 8px;
+}
+canvas {
+  background: #fff;
+  display: block;
+  margin: 0 auto;
+  image-rendering: pixelated; /* giữ pixel vuông không bị mờ */
+  width: 100%; /* phóng to hiển thị (x4) */
+  height: 256px; /* phóng to hiển thị (x4) */
+}
+
+/* --- Controls --- */
+.controls {
+  display: grid;
+  gap: 15px;
+}
+.control-group {
+  padding: 15px;
+  background: #1c2128;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+}
+.control-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #9da7b1;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg {
+  flex: 1;
+  padding: 8px;
+  background: #21262d;
+  border: none;
+  color: #c9d1d9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.seg:hover {
+  background: #30363d;
+}
+.seg.active {
+  background: #58a6ff;
+  color: white;
+}
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  background: #30363d;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* track */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  background: linear-gradient(to right, #58a6ff, #238636);
+  border-radius: 4px;
+}
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  background: linear-gradient(to right, #58a6ff, #238636);
+  border-radius: 4px;
+}
+
+/* thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 50px;
+  height: 35px;
+  background: #58a6ff;
+  border-radius: 10%;
+  border: 2px solid #0d1117;
+  margin-top: -12px; /* căn giữa */
+  transition: 0.5s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #1f6feb;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: #58a6ff;
+  border-radius: 50%;
+  border: 2px solid #0d1117;
+  transition: 0.5s;
+}
+input[type="range"]::-moz-range-thumb:hover {
+  background: #1f6feb;
+}
+
+/* --- Buttons --- */
+.btn-group {
+  display: flex;
+  gap: 10px;
+}
+button.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  background: #21262d;
+  color: #e6edf3;
+  transition: background 0.2s;
+}
+button.btn:hover {
+  background: #30363d;
+}
+button.primary {
+  background: #238636;
+}
+button.primary:hover {
+  background: #2ea043;
+}
+button.danger {
+  background: #da3633;
+}
+button.danger:hover {
+  background: #f85149;
+}
+
+/* --- Status Panel --- */
+.status-panel {
+  padding: 20px;
+}
+.status-title {
+  font-weight: bold;
+  color: #9da7b1;
+  margin-bottom: 8px;
+}
+.status-value {
+  font-size: 16px;
+  color: #e6edf3;
+}
+
+/* --- Instructions / Footer --- */
+.instructions {
+  padding: 20px;
+}
+.instructions ul {
+  padding-left: 20px;
+}
+.instructions li {
+  margin: 8px 0;
+}
+
+.footer {
+  text-align: center;
+  font-size: 13px;
+  padding: 15px;
+  color: #8b949e;
+  border-top: 1px solid #30363d;
+}
