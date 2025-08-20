@@ -7,8 +7,7 @@
       content="width=device-width, initial-scale=1, user-scalable=no"
     />
     <title>Upload GIF</title>
-    <link rel="stylesheet" href="upload.css" />
-    <link rel="stylesheet" href="color.css" />
+    <link rel="stylesheet" href="load-gif.css" />
   </head>
   <body>
     <div class="container">
@@ -25,8 +24,9 @@
           </div>
 
           <form
+            id="uploadForm"
             method="POST"
-            action="/upload"
+            action="/save-gif"
             enctype="multipart/form-data"
             class="upload-form"
           >
@@ -56,22 +56,36 @@
             <div id="message"></div>
           </form>
 
+          <!-- Unified upload progress and filesystem info -->
+          <div class="upload-status" style="margin-top:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <progress id="uploadProgress" value="0" max="100" style="flex:1; height:14px;"></progress>
+              <div id="progressText" style="min-width:54px;text-align:right;">0%</div>
+            </div>
+
+            <div class="fs-info" style="margin-top:8px;font-size:13px;">
+              <div><strong>Filesystem (SPIFFS):</strong></div>
+              <div>Total: <span id="fsTotal">-</span></div>
+              <div>Used: <span id="fsUsed">-</span></div>
+            </div>
+          </div>
+
           <div class="info-panel">
             <div class="info-title">📋 File Requirements</div>
             <div class="info-content">
               • Recommended size: <code>128×64 pixels</code><br />
               • File format: <code>GIF (animated)</code><br />
-              • Storage location: <code>/anim.gif</code><br />
-              • Max file size: <code>2MB</code>
+              • Storage location: <code>/anim_001.gif</code>, <code>/anim_002.gif</code>, ... (saved in upload order)<br />
             </div>
           </div>
 
           <div class="nav-panel">
             <a href="/" class="nav-link">← Back to Canvas</a>
+            <a href="/gif-speed" class="nav-link">⚙ GIF Speed</a>
           </div>
         </div>
       </div>
     </div>
-    <script src="upload.js"></script>
+    <script src="load-gif.js"></script>
   </body>
 </html>

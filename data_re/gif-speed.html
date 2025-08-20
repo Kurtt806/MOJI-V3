@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>GIF Speed</title>
+    <link rel="stylesheet" href="gif-speed.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="terminal-title">GIF Speed Control</div>
+        </div>
+        <div class="content">
+          <div class="header">
+            <h1>⚙️ GIF Speed</h1>
+            <p>Adjust playback speed for the animated GIF on the OLED</p>
+          </div>
+
+          <div class="speed-panel">
+            <label for="speedRange">Speed: <span id="speedLabel">1.00</span>x</label>
+            <input type="range" id="speedRange" min="0.1" max="4.0" step="0.01" value="1.00" />
+
+            <div class="speed-input-row">
+              <input type="number" id="speedInput" min="0.1" max="4.0" step="0.01" value="1.00" />
+              <button id="saveBtn" class="btn">Save</button>
+              <button id="resetBtn" class="btn alt">Reset</button>
+            </div>
+
+            <div id="message" class="message-area"></div>
+          </div>
+
+          <div class="info-panel">
+            <div class="info-title">Notes</div>
+            <div class="info-content">
+              • Values >1 speed up animation, values between 0.1–1 slow it down.<br />
+              • Valid range: <code>0.10</code> to <code>4.00</code>.
+            </div>
+          </div>
+
+          <div class="nav-panel">
+            <a href="/load-gif" class="nav-link">← Back to GIF Upload</a>
+            &nbsp;·&nbsp;
+            <a href="/" class="nav-link">Home</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="gif-speed.js"></script>
+  </body>
+</html>

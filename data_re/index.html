@@ -13,7 +13,6 @@
     <div class="container">
       <div class="terminal-window">
         <div class="terminal-header">
-
           <div class="terminal-title">MOJI V3</div>
         </div>
 
@@ -75,14 +74,20 @@
           <div class="status-value" id="st">Đang kết nối...</div>
 
           <!-- Thêm phần hiển thị thông tin bộ nhớ / SPIFFS -->
-          <div class="memory-info" style="margin-top:10px;font-size:14px;">
+          <div class="memory-info" style="margin-top: 10px; font-size: 14px">
             <div><strong>Bộ nhớ:</strong></div>
             <div>Free Heap: <span id="freeHeap">-</span></div>
             <div>Heap Size: <span id="heapSize">-</span></div>
             <div>Max Alloc: <span id="maxAlloc">-</span></div>
-            <div style="margin-top:6px;"><strong>Filesystem (SPIFFS):</strong></div>
+            <div style="margin-top: 6px">
+              <strong>Filesystem (SPIFFS):</strong>
+            </div>
             <div>Total: <span id="fsTotal">-</span></div>
             <div>Used: <span id="fsUsed">-</span></div>
+            <div style="margin-top: 6px"><strong>Flash & Sketch:</strong></div>
+            <div>Flash total: <span id="flashSize">-</span></div>
+            <div>Sketch size: <span id="sketchSize">-</span></div>
+            <div>Free sketch space: <span id="freeSketch">-</span></div>
           </div>
         </div>
       </div>
@@ -96,13 +101,42 @@
           <ul>
             <li>
               <strong>Upload GIF:</strong>
-              <a href="/upload">Tải lên các tệp GIF hoạt hình</a>
+              <a href="/load-gif">Tải lên các tệp GIF hoạt hình</a>
             </li>
             <li>
               <strong>WiFi Config:</strong>
               <a href="/wifi-config">🔧 Cấu hình WiFi</a>
             </li>
           </ul>
+        </div>
+        <div
+          class="text-section"
+          style="padding: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06)"
+        >
+          <div style="margin-bottom: 6px; font-weight: 600">
+            Hiển thị chữ lên màn hình
+          </div>
+          <input
+            id="displayTextInput"
+            type="text"
+            placeholder="Nhập chữ..."
+            style="
+              width: 100%;
+              padding: 8px;
+              margin-bottom: 6px;
+              box-sizing: border-box;
+            "
+          />
+          <div
+            style="margin: 8px 0; display: flex; gap: 6px; align-items: center"
+          >
+            <label style="min-width: 60px">Font:</label>
+            <select id="textFontSelect" style="flex: 1; padding: 6px"></select>
+          </div>
+          <div style="display: flex; gap: 6px">
+            <button class="btn primary" id="displayTextBtn">Hiển thị</button>
+            <button class="btn" id="fetchTextBtn">Lấy</button>
+          </div>
         </div>
         <div class="footer">
           <p>

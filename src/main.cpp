@@ -9,20 +9,17 @@
 #include <WiFi.h>      // Thư viện WiFi cho ESP32
 #include <config.h>    // File cấu hình phần cứng và thông số
 
-#include "wifi_manager.h"    // Quản lý WiFi (STA/AP/OFF)
-#include "ota_manager.h"     // Quản lý cập nhật OTA
-#include "web_draw_server.h" // Web + WebSocket vẽ và nhận frame
-#include "gif_player.h"      // Phát GIF từ SPIFFS
-
-uint64_t chipID = 0;
-
-// ==== CONFIG ====
-// Khởi tạo đối tượng màn hình OLED
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
-// Create RoboEyes object
 
 // QR Code object
 QRCode qrcode;
+uint64_t chipID = 0;
+
+// ==== CONFIG ====
+#include "wifi_manager.h"    // Quản lý WiFi (STA/AP/OFF)
+#include "ota_manager.h"     // Quản lý cập nhật OTA
+#include "web_server.h" // Web + WebSocket vẽ và nhận frame
+#include "gif_player.h"      // Phát GIF từ SPIFFS
 
 // ==== RTOS ====
 SemaphoreHandle_t displayMutex; // Mutex bảo vệ truy cập màn hình
@@ -47,24 +44,58 @@ AppState previousState = AppState::CLOCK; // Trạng thái trước đó để p
 RunMode runMode = RunMode::AUTO;          // Chế độ hoạt động hiện tại
 OneButton button(BUTTON_PIN, false);      // Đối tượng nút nhấn, active high
 
-#include "U8g2_RoboEyes.h" // Thư viện RoboEyes
-U8g2RoboEyes eyes(&u8g2);
-
 uint8_t menuIndex = 0;
+// Default screen selection (selectable from MODE menu)
+AppState defaultScreen = AppState::CLOCK;
+uint8_t defaultScreenIndex = 0;
+const AppState screenOptions[] = {AppState::CLOCK, AppState::EYES, AppState::QR, AppState::TEXT, AppState::DRAW, AppState::GIF};
+const char *screenNames[] = {"CLOCK", "EYES", "QR", "TEXT", "DRAW", "GIF"};
+const uint8_t screenCount = sizeof(screenOptions) / sizeof(screenOptions[0]);
 int accelX, accelY, accelZ;
 int gyroX, gyroY, gyroZ;
 float angleX = 0, angleY = 0, angleZ = 0;
 unsigned long lastUpdate = 0;
 
-// --- Clock font selection (changeable from web) ---
-const uint8_t *clockFonts[] = {
-    u8g2_font_bubble_tn,
-    u8g2_font_logisoso24_tf,
-    u8g2_font_ncenB08_tr,
-    u8g2_font_6x10_tr};
-const char *clockFontNames[] = {"bubble_tn", "logisoso24", "ncenB08", "6x10"};
-const uint8_t clockFontCount = sizeof(clockFonts) / sizeof(clockFonts[0]);
-uint8_t clockFontIndex = 0; // default font index
+
+// --- Text font selection (for TEXT screen) ---
+// Text fonts are defined in src/text_fonts.cpp
+#include "text_fonts.h"
+uint8_t textFontIndex = 3; // default to small
+
+// Expose set/get functions for web server
+void setTextFontIndex(uint8_t idx)
+{
+  if (idx < textFontCount)
+  {
+    textFontIndex = idx;
+    // persist to SPIFFS
+    File f = SPIFFS.open("/text_font", FILE_WRITE);
+    if (f)
+    {
+      f.print((int)textFontIndex);
+      f.close();
+    }
+  }
+}
+
+uint8_t getTextFontIndex()
+{
+  return textFontIndex;
+}
+
+void loadTextFontFromSPIFFS()
+{
+  if (!SPIFFS.exists("/text_font"))
+    return;
+  File f = SPIFFS.open("/text_font", FILE_READ);
+  if (!f)
+    return;
+  String s = f.readStringUntil('\n');
+  f.close();
+  int idx = s.toInt();
+  if (idx >= 0 && idx < (int)textFontCount)
+    textFontIndex = idx;
+}
 
 // ==== Helper functions ====
 bool MOJI_security(int key)
@@ -88,6 +119,38 @@ void changeState(AppState newState)
   previousState = currentState;
   currentState = newState;
 }
+
+// --- Persist default screen to SPIFFS ---
+void loadDefaultScreenFromSPIFFS()
+{
+  if (!SPIFFS.exists("/default_screen"))
+    return;
+  File f = SPIFFS.open("/default_screen", FILE_READ);
+  if (!f)
+    return;
+  String s = f.readStringUntil('\n');
+  f.close();
+  int idx = s.toInt();
+  if (idx >= 0 && idx < (int)screenCount)
+  {
+    defaultScreenIndex = idx;
+    defaultScreen = screenOptions[defaultScreenIndex];
+  }
+}
+
+bool saveDefaultScreenToSPIFFS()
+{
+  File f = SPIFFS.open("/default_screen", FILE_WRITE);
+  if (!f)
+  {
+    Serial.println("Failed to open /default_screen for writing");
+    return false;
+  }
+  f.print(defaultScreenIndex);
+  f.close();
+  Serial.printf("Saved default screen index=%d (%s)\n", defaultScreenIndex, screenNames[defaultScreenIndex]);
+  return true;
+}
 float convertRawGyro(int gRaw)
 {
   return (gRaw * 250.0) / 32768.0;
@@ -95,19 +158,6 @@ float convertRawGyro(int gRaw)
 float convertRawAccel(int aRaw)
 {
   return (aRaw * 2.0) / 32768.0;
-}
-void setClockFontIndex(uint8_t idx)
-{
-  if (idx < clockFontCount)
-    clockFontIndex = idx;
-}
-uint8_t getClockFontIndex()
-{
-  return clockFontIndex;
-}
-const char *getClockFontName()
-{
-  return clockFontNames[clockFontIndex];
 }
 
 // ==== Button callbacks ====
@@ -133,7 +183,13 @@ void longPress()
   xQueueSend(buttonQueue, &ev, 0);
 }
 
-// ==== Các màn hình ====
+//=======================================================================
+//=======================================================================
+//=======================================================================
+// ==== Các màn hình ====================================================
+//=======================================================================
+//=======================================================================
+//=======================================================================
 // Vẽ màn hình đồng hồ
 void drawClock()
 {
@@ -181,7 +237,7 @@ void drawClock()
   u8g2.drawStr(5, 10, dateBuf);
 
   // Giờ:phút lớn, căn giữa
-  u8g2.setFont(clockFonts[clockFontIndex]);
+  u8g2.setFont(u8g2_font_bubble_tn);
   char timeMain[8];
   snprintf(timeMain, sizeof(timeMain), "%02d:%02d", tm.tm_hour, tm.tm_min);
   int16_t tw = u8g2.getStrWidth(timeMain);
@@ -208,12 +264,8 @@ void drawClock()
 }
 
 // Vẽ mắt với điều khiển chuyển động
-
 void drawEyes()
 {
-  eyes.animShake(200);
-
-  eyes.update();
 }
 
 // Vẽ màn hình QR
@@ -262,9 +314,102 @@ void drawQR()
 void drawText()
 {
   u8g2.clearBuffer();
-  u8g2.drawFrame(0, 0, 128, 64);
+  u8g2.drawRFrame(0, 0, 128, 52, 4);
+
+  // Nội dung chính: đọc từ SPIFFS file /display_text.txt nếu có
+  String mainText = "TEXT";
+  if (SPIFFS.exists("/display_text.txt"))
+  {
+    File f = SPIFFS.open("/display_text.txt", FILE_READ);
+    if (f)
+    {
+      mainText = f.readStringUntil('\n');
+      f.close();
+      if (mainText.length() == 0)
+        mainText = "TEXT";
+    }
+  }
+
+  // Set font and prepare scrolling if text is wider than available area
+  u8g2.setFont(textFonts[textFontIndex]);
+  const int innerMargin = 6; // left/right padding inside the rounded frame
+  const int availableW = u8g2.getWidth() - innerMargin * 2;
+  int textW = u8g2.getStrWidth(mainText.c_str());
+  int ty = 26; // baseline gần giữa khung 52px
+
+  // Persistent scrolling state
+  static String cachedText = "";
+  static int scrollX = 0;
+  static unsigned long lastScrollMs = 0;
+  static unsigned long pauseUntil = 0;
+  const unsigned long scrollInterval = 60; // ms per pixel move
+  const int scrollStep = 1;                // pixels per step
+
+  if (mainText != cachedText)
+  {
+    // New text: reset scroll state
+    cachedText = mainText;
+    textW = u8g2.getStrWidth(cachedText.c_str());
+    if (textW <= availableW)
+    {
+      // center if fits
+      scrollX = (u8g2.getWidth() - textW) / 2 - innerMargin; // we'll add innerMargin when drawing
+    }
+    else
+    {
+      // start just beyond right edge of inner area
+      scrollX = availableW;
+      pauseUntil = millis() + 800; // short pause before starting to scroll
+    }
+    lastScrollMs = millis();
+  }
+
+  if (textW <= availableW)
+  {
+    int tx = (u8g2.getWidth() - textW) / 2;
+    u8g2.drawStr(tx, ty, cachedText.c_str());
+  }
+  else
+  {
+    unsigned long now = millis();
+    if (now >= pauseUntil)
+    {
+      if (now - lastScrollMs >= scrollInterval)
+      {
+        scrollX -= scrollStep;
+        lastScrollMs = now;
+      }
+      // when text fully scrolled out to left, reset to start position with a pause
+      if (scrollX < -textW)
+      {
+        scrollX = availableW;
+        pauseUntil = now + 600;
+      }
+    }
+
+    int drawX = scrollX + innerMargin; // account for left padding
+    u8g2.drawStr(drawX, ty, cachedText.c_str());
+  }
+
+  // Lấy thời gian hiện tại
+  time_t t = time(nullptr);
+  struct tm tm;
+  localtime_r(&t, &tm);
+
+  // Thứ (VN)
+  const char *weekday[] = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
+
+  // Hiển thị thứ ở bên dưới góc trái
   u8g2.setFont(u8g2_font_6x10_tr);
-  u8g2.drawStr(5, 20, "TEXT");
+  int baseY = 64 - 2; // baseline phía dưới màn hình
+  u8g2.drawStr(2, baseY, weekday[tm.tm_wday]);
+
+  // Hiển thị giờ:phút ở bên dưới góc phải
+  char timeBuf[6];
+  snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", tm.tm_hour, tm.tm_min);
+  int tw2 = u8g2.getStrWidth(timeBuf);
+  u8g2.drawStr(u8g2.getWidth() - tw2 - 2, baseY, timeBuf);
+
   u8g2.sendBuffer();
 }
 
@@ -408,32 +553,26 @@ void drawMode()
   u8g2.setFont(u8g2_font_helvB08_tf); // Font for title/content
   u8g2.drawStr(80, 12, "MODE");       // Title
   u8g2.drawLine(0, 14, 127, 14);      // Horizontal line
+  // MODE: show Default screen selection using the same font/cursor behavior as drawMenu()
+  const int itemHeight = 14;
+  const int menuTop = 24;
 
-  // Menu items
-  const char *items[2] = {"AUTO", "STATIC"};
-  const int itemCount = 2;
-  const int itemHeight = 14;  // Match drawMenu's item height
-  const int menuTop = 24;     // Match drawMenu's menu top position
-  const int visibleCount = 2; // Display up to 2 items (same as itemCount for now)
-
-  // Scrolling logic to match drawMenu
-  int cursorRow = 1; // Cursor stops moving down at row 1 (0-based)
+  // Menu-like cursor/scroll behavior
+  int itemCount = (int)screenCount;
+  int visibleCount = 4;
+  int cursorRow = 1; // visual row where cursor 'stops'
   int startIdx = 0;
-  int mIndex = (runMode == RunMode::AUTO) ? 0 : 1; // Map runMode to index
+  int mIndex = (int)defaultScreenIndex;
   if (mIndex > cursorRow)
     startIdx = mIndex - cursorRow;
-
-  // Ensure startIdx doesn't exceed bounds
   int maxStart = itemCount - visibleCount;
   if (maxStart < 0)
     maxStart = 0;
   if (startIdx > maxStart)
     startIdx = maxStart;
 
-  // Calculate visual Y position for selected item
   int selectedVisualY = (mIndex > cursorRow) ? (menuTop + cursorRow * itemHeight) : (menuTop + mIndex * itemHeight);
 
-  // Draw menu items
   for (int i = 0; i < visibleCount && (startIdx + i) < itemCount; ++i)
   {
     int idx = startIdx + i;
@@ -441,25 +580,24 @@ void drawMode()
 
     if (idx == mIndex)
     {
-      // Draw highlighted selection (white background)
-      int rectY = selectedVisualY - (itemHeight - 4); // Match drawMenu's adjustment
-      int rectH = itemHeight + 2;                     // Match drawMenu's height
+      // highlight selected line
+      int rectY = selectedVisualY - (itemHeight - 4);
+      int rectH = itemHeight + 2;
       u8g2.setDrawColor(1);
       u8g2.drawBox(0, rectY, u8g2.getWidth(), rectH);
-      // Draw arrow and text in black (color 0)
+      // draw arrow and text inverted
       u8g2.setDrawColor(0);
       u8g2.setFont(u8g2_font_unifont_t_symbols);
-      u8g2.drawGlyph(2, selectedVisualY + 2, 0x25BA); // ►, match drawMenu's offset
+      u8g2.drawGlyph(2, selectedVisualY + 2, 0x25BA); // ►
       u8g2.setFont(u8g2_font_helvB08_tf);
-      u8g2.drawStr(12, selectedVisualY + 2, items[idx]); // Match drawMenu's text offset
-      u8g2.setDrawColor(1);                              // Restore default color
+      u8g2.drawStr(12, selectedVisualY + 2, screenNames[idx]);
+      u8g2.setDrawColor(1);
     }
     else
     {
-      // Draw unselected item
       u8g2.setDrawColor(1);
       u8g2.setFont(u8g2_font_helvB08_tf);
-      u8g2.drawStr(12, y + 2, items[idx]); // Match drawMenu's text offset
+      u8g2.drawStr(12, y + 2, screenNames[idx]);
     }
   }
 
@@ -602,8 +740,8 @@ void ButtonTask(void *pv)
         }
         else if (currentState == AppState::MODE)
         {
-          // Trong màn hình MODE: 1 nhấn chuyển giữa AUTO <-> STATIC
-          runMode = (runMode == RunMode::AUTO) ? RunMode::STATIC : RunMode::AUTO;
+          // Trong màn hình MODE: 1 nhấn di chuyển lựa chọn Default Screen
+          defaultScreenIndex = (defaultScreenIndex + 1) % screenCount;
         }
         else if (currentState == AppState::SETTING)
         {
@@ -611,43 +749,24 @@ void ButtonTask(void *pv)
           Serial.println("Starting OTA HTTP update...");
           otaHttpUpdate(SERVER_BASE_URL);
         }
-        else
+          else if (currentState == AppState::GIF)
+          {
+            if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+              gifPlayerNextGif();
+              xSemaphoreGive(displayMutex);
+            }
+          }
+          else
         {
-          switch (currentState)
-          {
-          case AppState::CLOCK:
-            changeState(AppState::EYES);
-            break;
-          case AppState::EYES:
-            changeState(AppState::QR);
-            break;
-          case AppState::QR:
-            changeState(AppState::DRAW);
-            break; // Chuyển sang màn hình chữ
-          case AppState::TEXT:
-            changeState(AppState::DRAW);
-            break; // Chuyển sang màn hình vẽ
-          case AppState::DRAW:
-            changeState(AppState::GIF);
-            break; // Chuyển sang GIF
-          case AppState::GIF:
-            changeState(AppState::CLOCK);
-            break; // Quay lại đồng hồ
-          case AppState::WIFI:
-          {
-            // Chuyển mode WiFi: OFF -> STA -> AP -> OFF
-            WifiStatus st = wifiGetStatus();
-            WifiModeEx next = (st.mode == WifiModeEx::OFF) ? WifiModeEx::STA : (st.mode == WifiModeEx::STA ? WifiModeEx::AP : WifiModeEx::OFF);
-            wifiSetMode(next);
-            break;
-          }
-
-          default:
-            break;
-          }
+          // Single-tap outside MENU/MODE/SETTING no longer cycles screens.
+          // Screen changes should be made via the MENU (double-click to select)
+          // or other explicit controls. Keep WiFi mode and other special
+          // behaviors handled in their dedicated screens.
+          // No-op here.
         }
       }
-      else if (ev == ButtonEvent::DOUBLE)
+  else if (ev == ButtonEvent::DOUBLE)
       {
         if (currentState == AppState::MENU)
         {
@@ -668,18 +787,34 @@ void ButtonTask(void *pv)
             break; // Chọn INFO
           }
         }
+        else if (currentState == AppState::MODE)
+        {
+          // Double-click in MODE: confirm selection, persist and switch to it
+          defaultScreenIndex = defaultScreenIndex % screenCount;
+          defaultScreen = screenOptions[defaultScreenIndex];
+          saveDefaultScreenToSPIFFS();
+          changeState(defaultScreen);
+        }
         // Ngoài menu: không làm gì với double click
       }
       else if (ev == ButtonEvent::LONG)
       {
         if (currentState == AppState::MENU)
         {
-          changeState(AppState::CLOCK); // Nhấn giữ trong MENU để về CLOCK
+          changeState(defaultScreen); // Nhấn giữ trong MENU để về màn hình mặc định
         }
         else
         {
-          changeState(AppState::MENU); // Nhấn giữ ở các màn hình khác để vào MENU
-          menuIndex = 0;               // Đặt lại vị trí chọn đầu tiên
+          // Long press outside MENU enters MENU. If already in MODE, toggle runMode.
+          if (currentState == AppState::MODE)
+          {
+            runMode = (runMode == RunMode::AUTO) ? RunMode::STATIC : RunMode::AUTO;
+          }
+          else
+          {
+            changeState(AppState::MENU); // Nhấn giữ ở các màn hình khác để vào MENU
+            menuIndex = 0;               // Đặt lại vị trí chọn đầu tiên
+          }
         }
       }
     }
@@ -738,10 +873,9 @@ void WebTask(void *pv)
 void DisplayTask(void *pv)
 {
   u8g2.begin();
-  eyes.begin(128, 64, 50);
-  eyes.setAutoblink(true, 3000); // blink mỗi ~3s
-  eyes.setIdle(true);            // mắt tự đảo
-
+  loadDefaultScreenFromSPIFFS();
+  changeState(defaultScreen);
+  
   for (;;)
   {
     // Vẽ màn hình tương ứng với trạng thái hiện tại
@@ -808,10 +942,11 @@ void setup()
   button.attachLongPressStart(longPress);
 
   SPIFFS.begin(false);
+  // load persisted text font selection
+  loadTextFontFromSPIFFS();
+  
 
   Wire.begin(I2C_SDA, I2C_SCL);
-
-  u8g2.begin();
 
   // Khởi động WiFi manager
   wifiManagerBegin();

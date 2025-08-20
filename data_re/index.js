@@ -275,7 +275,14 @@ async function updateSystemInfo() {
   try {
     const res = await fetch("/system-info", { cache: "no-store" });
     if (!res.ok) return;
-    const j = await res.json();
+    let j;
+    try {
+      j = await res.json();
+      console.log('system-info fetched', j);
+    } catch (err) {
+      console.error('Failed to parse system-info JSON', err);
+      return;
+    }
     const fmt = (n) =>
       typeof n === "number"
         ? n >= 1024
@@ -288,13 +295,27 @@ async function updateSystemInfo() {
     const maxAllocEl = document.getElementById("maxAlloc");
     const fsTotalEl = document.getElementById("fsTotal");
     const fsUsedEl = document.getElementById("fsUsed");
+  const flashSizeEl = document.getElementById("flashSize");
+  const sketchSizeEl = document.getElementById("sketchSize");
+  const freeSketchEl = document.getElementById("freeSketch");
 
-    if (freeHeapEl) freeHeapEl.textContent = fmt(j.freeHeap);
-    if (heapSizeEl) heapSizeEl.textContent = fmt(j.heapSize);
+    // tolerate numeric values provided as strings
+    const num = (v) => {
+      if (v === undefined || v === null) return undefined;
+      if (typeof v === 'number') return v;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    if (freeHeapEl) freeHeapEl.textContent = fmt(num(j.freeHeap));
+    if (heapSizeEl) heapSizeEl.textContent = fmt(num(j.heapSize));
     if (maxAllocEl)
-      maxAllocEl.textContent = fmt(j.maxAllocHeap ?? j.maxAlloc ?? "-");
-    if (fsTotalEl) fsTotalEl.textContent = fmt(j.fsTotal);
-    if (fsUsedEl) fsUsedEl.textContent = fmt(j.fsUsed);
+      maxAllocEl.textContent = fmt(num(j.maxAllocHeap ?? j.maxAlloc));
+    if (fsTotalEl) fsTotalEl.textContent = fmt(num(j.fsTotal));
+    if (fsUsedEl) fsUsedEl.textContent = fmt(num(j.fsUsed));
+    if (flashSizeEl) flashSizeEl.textContent = fmt(num(j.flashSize));
+    if (sketchSizeEl) sketchSizeEl.textContent = fmt(num(j.sketchSize));
+    if (freeSketchEl) freeSketchEl.textContent = fmt(num(j.freeSketchSpace ?? j.freeSketch));
   } catch (e) {}
 }
 
@@ -323,3 +344,83 @@ document.body.addEventListener(
   },
   { passive: false }
 );
+
+// --- Display text UI handlers ---
+const displayInput = document.getElementById("displayTextInput");
+const displayBtn = document.getElementById("displayTextBtn");
+const fetchTextBtn = document.getElementById("fetchTextBtn");
+const textFontSelect = document.getElementById("textFontSelect");
+
+async function postDisplayText(txt) {
+  try {
+    const form = new URLSearchParams();
+    form.append("text", txt);
+    const res = await fetch("/display-text", {
+      method: "POST",
+      body: form,
+    });
+    if (res.ok) {
+      st("✅ Text saved");
+    } else {
+      st("❌ Save failed");
+    }
+  } catch (e) {
+    st("❌ Connection error");
+  }
+}
+
+displayBtn && displayBtn.addEventListener("click", () => {
+  const v = displayInput.value || "";
+  postDisplayText(v);
+});
+
+fetchTextBtn && fetchTextBtn.addEventListener("click", async () => {
+  try {
+    const r = await fetch("/display-text", { cache: "no-store" });
+    if (!r.ok) throw new Error("no");
+    const t = await r.text();
+    displayInput.value = t;
+    st("✅ Fetched");
+  } catch (e) {
+    st("❌ Fetch failed");
+  }
+});
+
+// try load current text on start
+(async function () {
+  try {
+    const r = await fetch("/display-text", { cache: "no-store" });
+    if (!r.ok) return;
+    const t = await r.text();
+    if (t && displayInput) displayInput.value = t;
+  } catch (e) {}
+})();
+
+// load available text fonts and populate select
+async function loadTextFonts() {
+  try {
+    const r = await fetch('/text-fonts', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    textFontSelect.innerHTML = '';
+    for (let i = 0; i < j.count; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = j.names[i] || ('font' + i);
+      textFontSelect.appendChild(opt);
+    }
+    if (j.current !== undefined) textFontSelect.value = j.current;
+  } catch (e) {}
+}
+
+textFontSelect && textFontSelect.addEventListener('change', async () => {
+  try {
+    const idx = textFontSelect.value;
+    const form = new URLSearchParams();
+    form.append('index', idx);
+    const r = await fetch('/text-fonts', { method: 'POST', body: form });
+    if (r.ok) st('✅ Font changed'); else st('❌ Font change failed');
+  } catch (e) { st('❌ Error'); }
+});
+
+loadTextFonts();
